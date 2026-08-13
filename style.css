@@ -13,11 +13,16 @@ header{
     display: grid;
     width: 100%;
     grid-template-columns: 33% 33% 33%;
-    border-bottom: #0f439b;
+    border-bottom: 2px solid #2053aa;
+    background-color: #ebf2ff;
+}
+
+#divlogo{
+    text-align: center;
 }
 
 .logo{
-width: 450px;
+width: 300px;
 }
 
 main{
