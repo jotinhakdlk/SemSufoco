@@ -1,9 +1,8 @@
 // ============================================================
 // TELA INICIAL - SEM SUFOCO
-// Responsável pela saudação, criação dos meses e produtos.
+// Responsável pela saudação, meses, gastos e receitas.
 // ============================================================
 
-// Nomes que serão mostrados para o usuário.
 const nomesMeses = {
     janeiro: "Janeiro",
     fevereiro: "Fevereiro",
@@ -19,19 +18,21 @@ const nomesMeses = {
     dezembro: "Dezembro"
 };
 
-// Objeto que guarda os produtos separados por mês.
-// Exemplo: produtosPorMes.janeiro = [{ nome: "Arroz", quantidade: 2, ... }]
+// Produtos continuam separados por mês.
 let produtosPorMes = carregarProdutos();
 
-// Set guarda apenas os meses que já tiveram um campo criado na tela.
+// Cada mês guarda a receita fixa daquele mês e suas receitas extras.
+// Exemplo:
+// receitasPorMes.janeiro = { base: 2500, extras: [{ descricao: "Freela", valor: 300 }] }
+let receitasPorMes = carregarReceitas();
+
+// Controla quais meses já foram criados nesta tela.
 const mesesCriados = new Set();
 
-// Quando o HTML terminar de carregar, executamos a preparação da página.
 document.addEventListener("DOMContentLoaded", function () {
     mostrarSaudacao();
 
     const botaoAdicionarMes = document.getElementById("botaoAdicionarMes");
-
     if (botaoAdicionarMes) {
         botaoAdicionarMes.addEventListener("click", adicionarMes);
     }
@@ -43,14 +44,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
 function mostrarSaudacao() {
     const saudacao = document.getElementById("saudacao");
-
-    // Se não estivermos na telaInicial.html, não há o que fazer.
     if (!saudacao) return;
 
     const nomeCompleto = localStorage.getItem("nomeUsuario");
 
     if (nomeCompleto) {
-        // Usamos apenas o primeiro nome para a saudação ficar mais natural.
         const primeiroNome = nomeCompleto.split(" ")[0];
         saudacao.textContent = `Olá, ${primeiroNome}!`;
     } else {
@@ -69,13 +67,11 @@ function adicionarMes() {
 
     avisoMes.textContent = "";
 
-    // Não cria nada enquanto nenhum mês estiver selecionado.
     if (mes === "") {
         avisoMes.textContent = "Selecione um mês antes de continuar.";
         return;
     }
 
-    // Impede que o mesmo mês seja criado duas vezes.
     if (mesesCriados.has(mes)) {
         avisoMes.textContent = `${nomesMeses[mes]} já foi adicionado.`;
         document.getElementById(`mes-${mes}`).scrollIntoView({ behavior: "smooth" });
@@ -84,13 +80,15 @@ function adicionarMes() {
 
     criarCampoDoMes(mes);
     mesesCriados.add(mes);
-
-    // Deixa o select pronto para uma nova escolha.
     selectMes.value = "";
 }
 
 function criarCampoDoMes(mes) {
     const containerMeses = document.getElementById("containerMeses");
+
+    // Se ainda não houver receita salva para este mês,
+    // usamos como padrão a renda mensal cadastrada pelo usuário.
+    prepararReceitaDoMes(mes);
 
     const campoMes = document.createElement("article");
     campoMes.classList.add("campoMes");
@@ -99,69 +97,323 @@ function criarCampoDoMes(mes) {
     campoMes.innerHTML = `
         <div class="cabecalhoMes">
             <div>
-                <p class="legendaMes">Gastos do mês</p>
+                <p class="legendaMes">Controle financeiro</p>
                 <h2>${nomesMeses[mes]}</h2>
             </div>
-            <div class="resumoMes">
-                <span>Total do mês</span>
-                <strong id="total-${mes}">R$ 0,00</strong>
+
+            <div class="resumosFinanceiros">
+                <div class="resumoMes resumoGastos">
+                    <span>Gastos do mês</span>
+                    <strong id="total-${mes}">R$ 0,00</strong>
+                </div>
+
+                <div class="resumoMes resumoReceita">
+                    <span>Receita atual</span>
+                    <strong id="receita-${mes}">R$ 0,00</strong>
+                </div>
+
+                <div class="resumoMes resumoLucro">
+                    <span>Lucro do mês</span>
+                    <strong id="lucro-${mes}">R$ 0,00</strong>
+                    <small id="status-${mes}">Sem gastos</small>
+                </div>
             </div>
         </div>
 
-        <div class="formProduto">
-            <input type="hidden" id="indiceEdicao-${mes}" value="">
-
-            <div class="grupoCampo campoNome">
-                <label for="nome-${mes}">Nome do produto</label>
-                <input type="text" id="nome-${mes}" placeholder="Ex.: Arroz">
+        <!-- ==================================================
+             ÁREA DE RECEITAS
+             ================================================== -->
+        <section class="areaReceitas">
+            <div class="tituloSecao">
+                <div>
+                    <h3>Receitas</h3>
+                    <p>A receita mensal começa com o valor cadastrado.</p>
+                </div>
             </div>
 
-            <div class="grupoCampo">
-                <label for="quantidade-${mes}">Quantidade</label>
-                <input type="number" id="quantidade-${mes}" min="1" step="1" placeholder="1">
+            <div class="formReceita">
+                <div class="grupoCampo">
+                    <label for="receitaBase-${mes}">Receita mensal</label>
+                    <input
+                        type="number"
+                        id="receitaBase-${mes}"
+                        min="0"
+                        step="0.01"
+                        value="${receitasPorMes[mes].base}"
+                        placeholder="0,00"
+                    >
+                </div>
+
+                <button
+                    type="button"
+                    class="botaoPrincipal"
+                    onclick="salvarReceitaBase('${mes}')"
+                >
+                    Modificar receita
+                </button>
             </div>
 
-            <div class="grupoCampo">
-                <label for="valor-${mes}">Valor unitário</label>
-                <input type="number" id="valor-${mes}" min="0.01" step="0.01" placeholder="0,00">
+            <div class="formReceitaExtra">
+                <div class="grupoCampo">
+                    <label for="descricaoExtra-${mes}">Descrição da receita extra</label>
+                    <input
+                        type="text"
+                        id="descricaoExtra-${mes}"
+                        placeholder="Ex.: Trabalho extra"
+                    >
+                </div>
+
+                <div class="grupoCampo">
+                    <label for="valorExtra-${mes}">Valor da receita extra</label>
+                    <input
+                        type="number"
+                        id="valorExtra-${mes}"
+                        min="0.01"
+                        step="0.01"
+                        placeholder="0,00"
+                    >
+                </div>
+
+                <button
+                    type="button"
+                    class="botaoPrincipal"
+                    onclick="adicionarReceitaExtra('${mes}')"
+                >
+                    Adicionar receita extra
+                </button>
             </div>
 
-            <button
-                type="button"
-                class="botaoPrincipal botaoAdicionarProduto"
-                id="botaoProduto-${mes}"
-                onclick="adicionarOuSalvarProduto('${mes}')"
-            >
-                Adicionar
-            </button>
-        </div>
+            <p id="avisoReceita-${mes}" class="mensagemAviso"></p>
 
-        <p id="aviso-${mes}" class="mensagemAviso"></p>
+            <div class="extrasLista" id="extras-${mes}"></div>
+        </section>
 
-        <div class="tabelaResponsiva">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Nome do produto</th>
-                        <th>Quantidade</th>
-                        <th>Valor unitário</th>
-                        <th>Valor total</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody id="corpoTabela-${mes}"></tbody>
-            </table>
-        </div>
+        <!-- ==================================================
+             ÁREA DE PRODUTOS/GASTOS
+             ================================================== -->
+        <section class="areaGastos">
+            <div class="tituloSecao">
+                <div>
+                    <h3>Produtos e gastos</h3>
+                    <p>Adicione os produtos comprados neste mês.</p>
+                </div>
+            </div>
+
+            <div class="formProduto">
+                <input type="hidden" id="indiceEdicao-${mes}" value="">
+
+                <div class="grupoCampo campoNome">
+                    <label for="nome-${mes}">Nome do produto</label>
+                    <input type="text" id="nome-${mes}" placeholder="Ex.: Arroz">
+                </div>
+
+                <div class="grupoCampo">
+                    <label for="quantidade-${mes}">Quantidade</label>
+                    <input type="number" id="quantidade-${mes}" min="1" step="1" placeholder="1">
+                </div>
+
+                <div class="grupoCampo">
+                    <label for="valor-${mes}">Valor unitário</label>
+                    <input type="number" id="valor-${mes}" min="0.01" step="0.01" placeholder="0,00">
+                </div>
+
+                <button
+                    type="button"
+                    class="botaoPrincipal botaoAdicionarProduto"
+                    id="botaoProduto-${mes}"
+                    onclick="adicionarOuSalvarProduto('${mes}')"
+                >
+                    Adicionar
+                </button>
+            </div>
+
+            <p id="aviso-${mes}" class="mensagemAviso"></p>
+
+            <div class="tabelaResponsiva">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nome do produto</th>
+                            <th>Quantidade</th>
+                            <th>Valor unitário</th>
+                            <th>Valor total</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="corpoTabela-${mes}"></tbody>
+                </table>
+            </div>
+        </section>
     `;
 
     containerMeses.appendChild(campoMes);
 
-    // Se já existirem produtos salvos para esse mês, eles aparecem na tabela.
+    renderizarReceitas(mes);
     renderizarTabela(mes);
 }
 
 // ============================================================
-// 3. PRODUTOS
+// 3. RECEITAS
+// ============================================================
+
+function prepararReceitaDoMes(mes) {
+    if (!receitasPorMes[mes]) {
+        const rendaCadastrada = Number(localStorage.getItem("rendaMensal")) || 0;
+
+        receitasPorMes[mes] = {
+            base: rendaCadastrada,
+            extras: []
+        };
+
+        salvarReceitas();
+    }
+
+    // Garante compatibilidade caso uma versão antiga dos dados exista.
+    if (!Array.isArray(receitasPorMes[mes].extras)) {
+        receitasPorMes[mes].extras = [];
+    }
+
+    if (typeof receitasPorMes[mes].base !== "number") {
+        receitasPorMes[mes].base = Number(receitasPorMes[mes].base) || 0;
+    }
+}
+
+function salvarReceitaBase(mes) {
+    const campo = document.getElementById(`receitaBase-${mes}`);
+    const aviso = document.getElementById(`avisoReceita-${mes}`);
+    const novaReceita = Number(campo.value);
+
+    if (novaReceita < 0 || campo.value === "") {
+        aviso.textContent = "Informe uma receita mensal válida.";
+        return;
+    }
+
+    receitasPorMes[mes].base = novaReceita;
+    salvarReceitas();
+    renderizarReceitas(mes);
+
+    aviso.textContent = "Receita mensal modificada com sucesso.";
+}
+
+function adicionarReceitaExtra(mes) {
+    const descricao = document.getElementById(`descricaoExtra-${mes}`).value.trim();
+    const campoValor = document.getElementById(`valorExtra-${mes}`);
+    const valor = Number(campoValor.value);
+    const aviso = document.getElementById(`avisoReceita-${mes}`);
+
+    if (valor <= 0 || campoValor.value === "") {
+        aviso.textContent = "Informe um valor válido para a receita extra.";
+        return;
+    }
+
+    receitasPorMes[mes].extras.push({
+        descricao: descricao || "Receita extra",
+        valor: valor
+    });
+
+    salvarReceitas();
+    renderizarReceitas(mes);
+
+    document.getElementById(`descricaoExtra-${mes}`).value = "";
+    campoValor.value = "";
+    aviso.textContent = "Receita extra adicionada com sucesso.";
+}
+
+function editarReceitaExtra(mes, indice) {
+    const receita = receitasPorMes[mes].extras[indice];
+
+    const novaDescricao = prompt("Descrição da receita extra:", receita.descricao);
+    if (novaDescricao === null) return;
+
+    const novoValorTexto = prompt("Valor da receita extra:", receita.valor);
+    if (novoValorTexto === null) return;
+
+    const novoValor = Number(novoValorTexto.replace(",", "."));
+
+    if (novoValor <= 0 || Number.isNaN(novoValor)) {
+        document.getElementById(`avisoReceita-${mes}`).textContent = "Informe um valor válido.";
+        return;
+    }
+
+    receitasPorMes[mes].extras[indice] = {
+        descricao: novaDescricao.trim() || "Receita extra",
+        valor: novoValor
+    };
+
+    salvarReceitas();
+    renderizarReceitas(mes);
+}
+
+function apagarReceitaExtra(mes, indice) {
+    receitasPorMes[mes].extras.splice(indice, 1);
+    salvarReceitas();
+    renderizarReceitas(mes);
+}
+
+function renderizarReceitas(mes) {
+    const dados = receitasPorMes[mes];
+    const lista = document.getElementById(`extras-${mes}`);
+
+    if (!dados || !lista) return;
+
+    document.getElementById(`receitaBase-${mes}`).value = dados.base;
+
+    lista.innerHTML = "";
+
+    if (dados.extras.length > 0) {
+        const titulo = document.createElement("p");
+        titulo.classList.add("tituloExtras");
+        titulo.textContent = "Receitas extras adicionadas:";
+        lista.appendChild(titulo);
+
+        dados.extras.forEach(function (receita, indice) {
+            const item = document.createElement("div");
+            item.classList.add("itemReceitaExtra");
+
+            item.innerHTML = `
+                <div>
+                    <strong>${escaparHTML(receita.descricao)}</strong>
+                    <span>${formatarDinheiro(receita.valor)}</span>
+                </div>
+                <div class="acoesTabela">
+                    <button
+                        type="button"
+                        class="botaoAcao botaoEditar"
+                        onclick="editarReceitaExtra('${mes}', ${indice})"
+                    >
+                        Modificar
+                    </button>
+                    <button
+                        type="button"
+                        class="botaoAcao botaoApagar"
+                        onclick="apagarReceitaExtra('${mes}', ${indice})"
+                    >
+                        Apagar
+                    </button>
+                </div>
+            `;
+
+            lista.appendChild(item);
+        });
+    }
+
+    atualizarResumoFinanceiro(mes);
+}
+
+function calcularReceitaTotal(mes) {
+    const dados = receitasPorMes[mes];
+
+    if (!dados) return 0;
+
+    const totalExtras = dados.extras.reduce(function (soma, receita) {
+        return soma + receita.valor;
+    }, 0);
+
+    return dados.base + totalExtras;
+}
+
+// ============================================================
+// 4. PRODUTOS/GASTOS
 // ============================================================
 
 function adicionarOuSalvarProduto(mes) {
@@ -174,8 +426,6 @@ function adicionarOuSalvarProduto(mes) {
     const nome = inputNome.value.trim();
     const quantidade = Number(inputQuantidade.value);
     const valorUnitario = Number(inputValor.value);
-
-    // O total não precisa ser digitado: é calculado automaticamente.
     const valorTotal = quantidade * valorUnitario;
 
     if (nome === "" || quantidade <= 0 || valorUnitario <= 0) {
@@ -192,16 +442,13 @@ function adicionarOuSalvarProduto(mes) {
         valorTotal: valorTotal
     };
 
-    // Caso o mês ainda não tenha um array de produtos, criamos um.
     if (!produtosPorMes[mes]) {
         produtosPorMes[mes] = [];
     }
 
     if (indiceEdicao.value === "") {
-        // Sem índice = produto novo.
         produtosPorMes[mes].push(produto);
     } else {
-        // Com índice = estamos salvando uma modificação.
         const indice = Number(indiceEdicao.value);
         produtosPorMes[mes][indice] = produto;
     }
@@ -214,13 +461,11 @@ function adicionarOuSalvarProduto(mes) {
 function editarProduto(mes, indice) {
     const produto = produtosPorMes[mes][indice];
 
-    // Colocamos os dados do produto novamente nos campos do formulário.
     document.getElementById(`nome-${mes}`).value = produto.nome;
     document.getElementById(`quantidade-${mes}`).value = produto.quantidade;
     document.getElementById(`valor-${mes}`).value = produto.valorUnitario;
     document.getElementById(`indiceEdicao-${mes}`).value = indice;
 
-    // O mesmo botão passa a salvar a alteração.
     const botao = document.getElementById(`botaoProduto-${mes}`);
     botao.textContent = "Salvar alteração";
 
@@ -240,19 +485,17 @@ function limparFormularioProduto(mes) {
     document.getElementById(`quantidade-${mes}`).value = "";
     document.getElementById(`valor-${mes}`).value = "";
     document.getElementById(`indiceEdicao-${mes}`).value = "";
-
     document.getElementById(`botaoProduto-${mes}`).textContent = "Adicionar";
 }
 
 // ============================================================
-// 4. MONTAGEM/ATUALIZAÇÃO DA TABELA
+// 5. TABELA E RESUMO FINANCEIRO
 // ============================================================
 
 function renderizarTabela(mes) {
     const corpoTabela = document.getElementById(`corpoTabela-${mes}`);
     const produtos = produtosPorMes[mes] || [];
 
-    // Limpamos a tabela para recriá-la com os dados mais recentes.
     corpoTabela.innerHTML = "";
 
     if (produtos.length === 0) {
@@ -292,21 +535,46 @@ function renderizarTabela(mes) {
         });
     }
 
-    atualizarTotalDoMes(mes);
+    atualizarResumoFinanceiro(mes);
 }
 
-function atualizarTotalDoMes(mes) {
+function calcularGastoTotal(mes) {
     const produtos = produtosPorMes[mes] || [];
 
-    const totalMes = produtos.reduce(function (soma, produto) {
+    return produtos.reduce(function (soma, produto) {
         return soma + produto.valorTotal;
     }, 0);
+}
 
-    document.getElementById(`total-${mes}`).textContent = formatarDinheiro(totalMes);
+function atualizarResumoFinanceiro(mes) {
+    const totalGastos = calcularGastoTotal(mes);
+    const totalReceita = calcularReceitaTotal(mes);
+    const lucro = totalReceita - totalGastos;
+
+    document.getElementById(`total-${mes}`).textContent = formatarDinheiro(totalGastos);
+    document.getElementById(`receita-${mes}`).textContent = formatarDinheiro(totalReceita);
+    document.getElementById(`lucro-${mes}`).textContent = formatarDinheiro(Math.abs(lucro));
+
+    const status = document.getElementById(`status-${mes}`);
+    const resumoLucro = document.querySelector(`#mes-${mes} .resumoLucro`);
+
+    // Removemos as classes antigas antes de colocar o novo estado.
+    resumoLucro.classList.remove("situacaoPositiva", "situacaoNegativa", "situacaoNeutra");
+
+    if (lucro < 0) {
+        status.textContent = `Você está devendo ${formatarDinheiro(Math.abs(lucro))}`;
+        resumoLucro.classList.add("situacaoNegativa");
+    } else if (lucro > 0) {
+        status.textContent = `Você não está devendo • sobra ${formatarDinheiro(lucro)}`;
+        resumoLucro.classList.add("situacaoPositiva");
+    } else {
+        status.textContent = "Receita e gastos estão iguais";
+        resumoLucro.classList.add("situacaoNeutra");
+    }
 }
 
 // ============================================================
-// 5. LOCALSTORAGE E FUNÇÕES AUXILIARES
+// 6. LOCALSTORAGE
 // ============================================================
 
 function salvarProdutos() {
@@ -317,11 +585,37 @@ function carregarProdutos() {
     const produtosSalvos = localStorage.getItem("produtosPorMes");
 
     if (produtosSalvos) {
-        return JSON.parse(produtosSalvos);
+        try {
+            return JSON.parse(produtosSalvos);
+        } catch (erro) {
+            return {};
+        }
     }
 
     return {};
 }
+
+function salvarReceitas() {
+    localStorage.setItem("receitasPorMes", JSON.stringify(receitasPorMes));
+}
+
+function carregarReceitas() {
+    const receitasSalvas = localStorage.getItem("receitasPorMes");
+
+    if (receitasSalvas) {
+        try {
+            return JSON.parse(receitasSalvas);
+        } catch (erro) {
+            return {};
+        }
+    }
+
+    return {};
+}
+
+// ============================================================
+// 7. FUNÇÕES AUXILIARES
+// ============================================================
 
 function formatarDinheiro(valor) {
     return valor.toLocaleString("pt-BR", {
@@ -330,7 +624,6 @@ function formatarDinheiro(valor) {
     });
 }
 
-// Evita que textos digitados pelo usuário sejam interpretados como HTML.
 function escaparHTML(texto) {
     const elemento = document.createElement("div");
     elemento.textContent = texto;

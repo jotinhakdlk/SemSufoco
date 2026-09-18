@@ -429,3 +429,190 @@ td {
         padding: 18px;
     }
 }
+
+
+/* ==========================================================
+   RESUMO FINANCEIRO DO MÊS
+   ========================================================== */
+
+.resumosFinanceiros {
+    display: flex;
+    align-items: stretch;
+    justify-content: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.resumosFinanceiros .resumoMes {
+    min-width: 145px;
+    padding: 10px 13px;
+    border: 1px solid var(--borda);
+    border-radius: 9px;
+    background-color: var(--fundo-suave);
+}
+
+.resumosFinanceiros .resumoMes strong {
+    display: block;
+}
+
+.resumosFinanceiros .resumoLucro strong {
+    color: var(--azul-principal);
+}
+
+.resumosFinanceiros .resumoLucro small {
+    display: block;
+    margin-top: 4px;
+    font-size: 11px;
+    line-height: 1.3;
+}
+
+.resumoLucro.situacaoPositiva {
+    border-color: #b7dfc1;
+    background-color: #f2fbf4;
+}
+
+.resumoLucro.situacaoPositiva strong,
+.resumoLucro.situacaoPositiva small {
+    color: #18753a;
+}
+
+.resumoLucro.situacaoNegativa {
+    border-color: #f0b7b3;
+    background-color: #fff5f4;
+}
+
+.resumoLucro.situacaoNegativa strong,
+.resumoLucro.situacaoNegativa small {
+    color: var(--vermelho);
+}
+
+.resumoLucro.situacaoNeutra {
+    border-color: var(--borda);
+}
+
+/* ==========================================================
+   ÁREAS DE RECEITAS E GASTOS
+   ========================================================== */
+
+.areaReceitas,
+.areaGastos {
+    margin-top: 20px;
+    padding-top: 18px;
+    border-top: 1px solid var(--borda);
+}
+
+.tituloSecao {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    margin-bottom: 14px;
+}
+
+.tituloSecao h3 {
+    color: var(--azul-principal);
+    font-family: "Goldman", sans-serif;
+    font-size: 19px;
+}
+
+.tituloSecao p {
+    margin-top: 3px;
+    color: var(--texto-suave);
+    font-size: 13px;
+}
+
+.formReceita {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    align-items: end;
+}
+
+.formReceitaExtra {
+    display: grid;
+    grid-template-columns: 2fr 1fr auto;
+    gap: 12px;
+    align-items: end;
+    margin-top: 12px;
+}
+
+.extrasLista {
+    margin-top: 14px;
+}
+
+.tituloExtras {
+    margin-bottom: 8px;
+    color: var(--texto-suave);
+    font-size: 13px;
+    font-weight: bold;
+}
+
+.itemReceitaExtra {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    padding: 10px 12px;
+    margin-bottom: 7px;
+    border: 1px solid var(--borda);
+    border-radius: 7px;
+    background-color: var(--fundo-suave);
+}
+
+.itemReceitaExtra > div:first-child {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.itemReceitaExtra span {
+    color: var(--texto-suave);
+    font-size: 13px;
+}
+
+@media (max-width: 850px) {
+    .cabecalhoMes {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .resumosFinanceiros {
+        justify-content: flex-start;
+    }
+
+    .formReceita,
+    .formReceitaExtra {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .formReceita .botaoPrincipal,
+    .formReceitaExtra .botaoPrincipal {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 520px) {
+    .resumosFinanceiros {
+        display: grid;
+        grid-template-columns: 1fr;
+    }
+
+    .resumosFinanceiros .resumoMes {
+        min-width: 0;
+    }
+
+    .formReceita,
+    .formReceitaExtra {
+        grid-template-columns: 1fr;
+    }
+
+    .formReceita .botaoPrincipal,
+    .formReceitaExtra .botaoPrincipal {
+        grid-column: auto;
+    }
+
+    .itemReceitaExtra {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}
