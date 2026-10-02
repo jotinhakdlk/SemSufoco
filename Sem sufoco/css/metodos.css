@@ -1,0 +1,13 @@
+body{
+    text-align: center;
+}
+
+th{
+    background-color: #0f439b;
+    color: #ffffff;
+}
+
+table{
+    width: 600px;
+    margin-left: 600px;
+}
